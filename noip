@@ -1,0 +1,49 @@
+#!/bin/sh
+# /etc/init.d/noip
+# Victor Manuel Fernandez Castro
+# 2 October 2015
+
+### BEGIN INIT INFO
+# Provides:		noip
+# Required-Start:	$remote_fs $syslog $network
+# Required-Stop:	$remote_fs $syslog $network
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description:	No-IP update client
+# Description:		No-IP update client
+### END INIT INFO
+
+NOIP="/usr/local/bin/noip.sh"
+PIDFILE="/run/noip.pid"
+
+start() {
+	$NOIP > /dev/null 2>&1 < /dev/null &
+}
+
+stop() {
+	if [ -f $PIDFILE ]; then
+		kill $(cat $PIDFILE)
+		rm $PIDFILE
+	fi;
+}
+
+case $1 in
+	"start")
+		start
+		;;
+
+	"stop")
+		stop
+		;;
+	
+	"restart")
+		stop
+		start
+		;;
+	
+	"force-reload")
+		;;
+	
+	"status")
+		;;
+esac
