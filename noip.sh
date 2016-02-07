@@ -25,18 +25,17 @@ echo $$ > $PIDFILE
 
 while true; do
 	ip=$(curl -sG "ip1.dynupdate.no-ip.com")
-	
+
 	if [ "$ip" != "$oldip" ]; then
-		#resp=$(curl -sG "$USER:$PASSWD@dynupdate.no-ip.com/nic/update?hostname=$HOST&myip=$ip")
-		resp="nochg 83.35.169.58"
-		
+		resp=$(curl -sG "$USER:$PASSWD@dynupdate.no-ip.com/nic/update?hostname=$HOST&myip=$ip" | tr -d '\r')
+
 		if ! ([ "$resp" = "good $ip" ] || [ "$resp" = "nochg $ip" ]); then
 			echo "Error. $resp"
 			exit 1
 		fi
-		
+
 		oldip=$ip
 	fi
-	
+
 	sleep $TIME
 done
