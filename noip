@@ -1,4 +1,3 @@
-#!/bin/sh
 # /etc/init.d/noip
 # Victor Manuel Fernandez Castro
 # 2 October 2015
@@ -47,3 +46,4 @@ case $1 in
 	"status")
 		;;
 esac
+

@@ -1,5 +1,4 @@
-#!/bin/sh
-# /usr/local/noip.sh
+# /usr/local/bin/noip.sh
 # Victor Manuel Fernandez Castro
 # 2 October 2015
 
@@ -28,6 +27,7 @@ while true; do
 
 	if [ "$ip" != "$oldip" ]; then
 		resp=$(curl -sG "$USER:$PASSWD@dynupdate.no-ip.com/nic/update?hostname=$HOST&myip=$ip" | tr -d '\r')
+		echo "IP updated to $ip"
 
 		if ! ([ "$resp" = "good $ip" ] || [ "$resp" = "nochg $ip" ]); then
 			echo "Error. $resp"
@@ -39,3 +39,4 @@ while true; do
 
 	sleep $TIME
 done
+
