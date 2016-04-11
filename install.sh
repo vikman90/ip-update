@@ -38,7 +38,7 @@ done
 
 while [ -z "$noip_pass" ]; do
 	read -s -p "  Enter your NoIP password: " noip_pass
-	echo
+	echo "********"
 done
 
 while [ -z "$noip_host" ]; do
@@ -85,18 +85,18 @@ fi
 
 # Modify sources
 
-sed -i "s/^USER=.*/USER=\"$noip_user\"/g" noip.sh
 noip_pass=$(escape "$noip_pass")
-sed -i "s/^PASSWD=.*/PASSWD=\"$$noip_pass\"/g" noip.sh
-sed -i "s/^HOST=.*/HOST=\"$noip_host\"/g" noip.sh
-sed -i "s/^TIME=.*/TIME=$latency/g" noip.sh
+sed "s/^USER=.*/USER=\"$noip_user\"/g" noip.sh > noip.sh.tmp
+sed -i "s/^PASSWD=.*/PASSWD=\"$$noip_pass\"/g" noip.sh.tmp
+sed -i "s/^HOST=.*/HOST=\"$noip_host\"/g" noip.sh.tmp
+sed -i "s/^TIME=.*/TIME=$latency/g" noip.sh.tmp
 
 bin=$(escape "/bin/sh $installdir/noip.sh")
 
 if [ "$SYSTEM" = "systemd" ]; then
-	sed -i "s/^ExecStart=.*/ExecStart=$bin/g" noip.service
+	sed "s/^ExecStart=.*/ExecStart=$bin/g" noip.service > noip.service.tmp
 else
-	sed -i "s/^NOIP=.*/NOIP=\"$bin\"/g" noip
+	sed "s/^NOIP=.*/NOIP=\"$bin\"/g" noip > noip.tmp
 fi
 
 # Install files
@@ -105,17 +105,20 @@ if ! [ -d $installdir ]; then
 	install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $installdir
 fi
 
-install -m $I_XMODE -o $I_OWNER -g $I_GROUP noip.sh $installdir
+install -m $I_XMODE -o $I_OWNER -g $I_GROUP noip.sh.tmp $installdir/noip.sh
+rm -f noip.sh.tmp
 
 if [ "$SYSTEM" = "systemd" ]; then
-	install -m $I_FMODE -o $I_OWNER -g $I_GROUP noip.service $I_SYSTEMD
+	install -m $I_FMODE -o $I_OWNER -g $I_GROUP noip.service.tmp $I_SYSTEMD/noip.service
 	systemctl enable noip
 	systemctl daemon-reload
 	systemctl start noip
+	rm -f noip.service.tmp
 else
-	install -m $I_XMODE -o $I_OWNER -g $I_GROUP noip $I_SYSVINIT
+	install -m $I_XMODE -o $I_OWNER -g $I_GROUP noip.tmp $I_SYSVINIT/noip
 	insserv noip
 	service start noip
+	rm -f noip.tmp
 fi
 
 echo "Daemon installed successfully. Please check the status running:"
