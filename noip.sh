@@ -27,7 +27,6 @@ while true; do
 
 	if [ "$ip" != "$oldip" ]; then
 		resp=$(curl -sG "$USER:$PASSWD@dynupdate.no-ip.com/nic/update?hostname=$HOST&myip=$ip" | tr -d '\r')
-		echo "IP updated to $ip"
 
 		if ! ([ "$resp" = "good $ip" ] || [ "$resp" = "nochg $ip" ]); then
 			echo "Error. $resp"
@@ -35,6 +34,7 @@ while true; do
 		fi
 
 		oldip=$ip
+		echo "IP updated to $ip"
 	fi
 
 	sleep $TIME
