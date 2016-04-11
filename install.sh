@@ -37,7 +37,8 @@ while [ -z "$noip_user" ]; do
 done
 
 while [ -z "$noip_pass" ]; do
-	read -p "  Enter your NoIP password: " noip_pass
+	read -s -p "  Enter your NoIP password: " noip_pass
+	echo
 done
 
 while [ -z "$noip_host" ]; do
@@ -120,8 +121,8 @@ fi
 echo "Daemon installed successfully. Please check the status running:"
 
 if [ "$SYSTEM" = "systemd" ]; then
-	echo "  service noip status"
-else
 	echo "  systemctl status noip"
+else
+	echo "  service noip status"
 fi
 
