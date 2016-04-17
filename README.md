@@ -1,6 +1,8 @@
 # IP updating service for NoIP
 
-This project is a simple daemon script to auto-update the host IP address in NoIP.
+This project is a simple script to auto-update the host IP address in NoIP.
+
+It synchronizes periodically to keep your IP updated.
 
 ## Installation
 
@@ -8,35 +10,55 @@ To install this program, simply run `install.sh` and follow the instructions.
 
 ### Manual configuration and installation
 
-1. Edit `noip.sh`script and set, at less, the parameters:
-    * `USER`: Your user name.
-    * `PASSWD`: Your user password.
-    * `HOST`: The hostname at NoIP, e.g. "example.ddns.net"
-2. Copy `noip.sh` to the local directory for user binaries: `sudo cp noip.sh /usr/local/bin`
-3. Copy `noip` to the daemons directory (see below).
-4. Enable the service.
-5. Start the service:
+1. Create a file with name `noip_conf` and write the following parameters:
 
-Steps 3-5 depend on your init system:
+    ```
+    USER="your_usename"
+    PASSWD="your_password"
+    HOST="your_hostname"
+    LAST_IP=""
+    ```
 
-#### Install service for Systemd
+    Leave the last parameter in blank. Then copy this file in the folder `etc/noip`. I advise you to give reading permissions only to `root` since it contains **sensitive information**:
 
-Systemd is used in the most modern Linux systems.
-*Use `sudo` if needed:*
+    ```
+    $ sudo mkdir -p /etc/noip
+    $ sudo cp noip_conf /etc/noip
+    $ sudo chmod 600 /etc/noip/noip_conf
+    ```
 
-```
-cp noip.service /etc/systemd/system
-systemctl enable noip
-systemctl start noip
-```
+2. Make sure `noip.sh` has execution permissions and copy it to the local directory for user binaries: 
 
-#### Install service for SysVinit
+    ```
+    $ chmod a+x noip.sh
+    $ sudo cp noip.sh /usr/local/bin
+    ```
 
-```
-cp noip /etc/init.d
-insserv noip
-service noip start
-```
+3. To execute the script periodically, register it on cron:
+
+    ```
+    $ sudo crontab -e
+    ```
+
+    A text editor will be opened. For example, to run the program every 5 minutes, write the next line into it:
+
+    ```
+    */5 * * * * /usr/local/bin/noip.sh
+    ```
+
+    Save this file and exit. The application is now installed.
+
+- To run the script once, simply run:
+
+    ```
+    $ noip.sh
+    ```
+
+- To see the log, run:
+
+    ```
+    $ grep "noip:" /var/log/messages
+    ```
 
 ## License
 
