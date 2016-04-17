@@ -19,6 +19,12 @@ I_CRON_FILE="crontab.tmp"
 DEF_LATENCY=5
 DEF_INSTALL="/usr/local/bin"
 
+# Functions
+
+function escape() {
+    echo $(echo $1 | sed "s/\\$2/\\\\\\$2/g")
+}
+
 # User input
 
 echo "This application will install the IP-update daemon."
@@ -57,14 +63,14 @@ while [ -z "$latency" ]; do
 	fi 
 done
 
-while [ -z "$installdir" ]; do
-	read -p "  Enter the installation directory [$DEF_INSTALL]: " installdir
+while [ -z "$install_dir" ]; do
+	read -p "  Enter the installation directory [$DEF_INSTALL]: " install_dir
 
-	if [ -z "$installdir" ]; then
-		installdir=$DEF_INSTALL
-	elif [ -z "$(echo $installdir | egrep '^/$|^(/[A-Za-z\._-]+)+$' )" ]; then
+	if [ -z "$install_dir" ]; then
+		install_dir=$DEF_INSTALL
+	elif [ -z "$(echo $install_dir | egrep '^/$|^(/[A-Za-z\._-]+)+$' )" ]; then
 		echo "Error: this value must be a path"
-		installdir=""
+		install_dir=""
 	fi
 done
 
@@ -86,11 +92,11 @@ echo "LAST_IP=" >> $conf_tmp
 
 # Install files
 
-if ! [ -d $installdir ]; then
-	install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $installdir
+if ! [ -d $install_dir ]; then
+	install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $install_dir
 fi
 
-install -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_BIN_FILE $installdir/$I_BIN_FILE
+install -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_BIN_FILE $install_dir/$I_BIN_FILE
 
 if ! [ -d $I_CONF_DIR ]; then
 	install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_CONF_DIR
@@ -111,12 +117,14 @@ fi
 crontab -l > $cron_tmp 2> /dev/null
 
 if [ -n "$(egrep "^\*/[0-9]+ \* \* \* \* .*$I_BIN_FILE$" $cron_tmp)" ]; then
-    sed -ri "s:^\*/[0-9]+ \* \* \* \* .*noip\.sh$:*/$latency * * * * $installdir/$I_BIN_FILE:g" $cron_tmp
+    sed -ri "s:^\*/[0-9]+ \* \* \* \* .*$(escape $I_BIN_FILE '.')\$:*/$latency * * * * $install_dir/$I_BIN_FILE:g" $cron_tmp
 else
-    echo "*/$latency * * * * $installdir/$I_BIN_FILE" >> $cron_tmp
+    echo "*/$latency * * * * $install_dir/$I_BIN_FILE" >> $cron_tmp
 fi
 
 crontab $cron_tmp
 rm -f $cron_tmp
 
 echo "Application installed successfully."
+
+$install_dir/$I_BIN_FILE
