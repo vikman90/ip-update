@@ -10,13 +10,16 @@ CONF_FILE="/etc/noip/noip_conf"
 # PID file (for service stopping)
 PID_FILE="/run/noip.pid"
 
+# Tag for logging
+LOG_TAG="noip"
+
 ################################################################################
 
 oldip=''
 echo $$ > $PID_FILE
 
 if ! [ -f $CONF_FILE ]; then
-    echo "Error: No such file $CONF_FILE"
+    logger -t $LOG_TAG "Error: No such file $CONF_FILE"
     exit 1
 fi
 
@@ -28,10 +31,10 @@ if [ "$ip" != "$LAST_IP" ]; then
     resp=$(curl -sG "$USER:$PASSWD@dynupdate.no-ip.com/nic/update?hostname=$HOST&myip=$ip" | tr -d '\r')
 
     if ! ([ "$resp" = "good $ip" ] || [ "$resp" = "nochg $ip" ]); then
-        echo "Error: $resp"
+        logger -t $LOG_TAG "Error: $resp"
         exit 1
     fi
 
     sed -i "s/^LAST_IP=.*/LAST_IP=$ip/g" $CONF_FILE
-    echo "IP updated to $ip"
+    logger -t $LOG_TAG "IP updated to $ip"
 fi
