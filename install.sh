@@ -9,6 +9,7 @@ I_OWNER="root"
 I_GROUP="root"
 I_XMODE="755"
 I_FMODE="644"
+I_RMODE="600"
 I_SYSTEMD="/etc/systemd/system"
 I_SYSVINIT="/etc/init.d"
 I_BIN_FILE="noip.sh"
@@ -77,6 +78,8 @@ while [ -z "$installdir" ]; do
 	fi
 done
 
+echo "Installing..."
+
 # Determinate whether using Systemd or SysVinit
 
 if [ -n "$(ps -e | egrep ^\ *1\ .*systemd$)" ]; then
@@ -110,13 +113,13 @@ if ! [ -d $installdir ]; then
 fi
 
 install -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_BIN_FILE $installdir/$I_BIN_FILE
-rm -f noip.sh.tmp
 
 if ! [ -d $I_CONF_DIR ]; then
 	install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_CONF_DIR
 fi
 
-install -m $I_FMODE -o $I_OWNER -g $I_GROUP $I_CONF_FILE.tmp $I_CONF_DIR/$I_CONF_FILE
+install -m $I_RMODE -o $I_OWNER -g $I_GROUP $I_CONF_FILE.tmp $I_CONF_DIR/$I_CONF_FILE
+rm -f $I_CONF_FILE.tmp
 
 if [ "$SYSTEM" = "systemd" ]; then
 	install -m $I_FMODE -o $I_OWNER -g $I_GROUP $I_UNIT_FILE.tmp $I_SYSTEMD/$I_UNIT_FILE
