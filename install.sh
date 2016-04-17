@@ -8,26 +8,16 @@
 I_OWNER="root"
 I_GROUP="root"
 I_XMODE="755"
-I_FMODE="644"
 I_RMODE="600"
-I_SYSTEMD="/etc/systemd/system"
-I_SYSVINIT="/etc/init.d"
 I_BIN_FILE="noip.sh"
-I_SERVICE="noip"
-I_UNIT_FILE="$I_SERVICE.service"
 I_CONF_DIR="/etc/noip"
 I_CONF_FILE="noip_conf"
-
-# Functions
-
-function escape() {
-	echo $(echo $1 | sed "s_/_\\\\/_g")
-}
+I_CRON_FILE="crontab.tmp"
 
 # Default values
 
-def_latency=300
-def_install="/usr/local/bin"
+DEF_LATENCY=5
+DEF_INSTALL="/usr/local/bin"
 
 # User input
 
@@ -57,10 +47,10 @@ while [ -z "$noip_host" ]; do
 done
 
 while [ -z "$latency" ]; do
-	read -p "  Enter the updating frequency [$def_latency]: " latency
+	read -p "  Enter the updating frequency (minutes) [$DEF_LATENCY]: " latency
 	
 	if [ -z "$latency" ]; then
-		latency=$def_latency
+		latency=$DEF_LATENCY
 	elif [ -z "$(echo $latency | egrep '^[0-9]+$' )" ]; then
 		echo "Error: this value must be numeric"
 		latency=""
@@ -68,10 +58,10 @@ while [ -z "$latency" ]; do
 done
 
 while [ -z "$installdir" ]; do
-	read -p "  Enter the installation directory [$def_install]: " installdir
+	read -p "  Enter the installation directory [$DEF_INSTALL]: " installdir
 
 	if [ -z "$installdir" ]; then
-		installdir=$def_install
+		installdir=$DEF_INSTALL
 	elif [ -z "$(echo $installdir | egrep '^/$|^(/[A-Za-z\._-]+)+$' )" ]; then
 		echo "Error: this value must be a path"
 		installdir=""
@@ -80,31 +70,19 @@ done
 
 echo "Installing..."
 
-# Determinate whether using Systemd or SysVinit
+# Create config file
 
-if [ -n "$(ps -e | egrep ^\ *1\ .*systemd$)" ]; then
-	SYSTEM="systemd"
-elif [ -n "$(ps -e | egrep ^\ *1\ .*init$)" ]; then
-	SYSTEM="sysvinit"
-else
-	echo "Unknown booting system"
-	exit 1
+conf_tmp=$(mktemp)
+
+if [ -z "$conf_tmp" ]; then
+    echo "Warning: couldn't create temporary file."
+    conf_tmp="$I_CONF_FILE.tmp"
 fi
 
-# Modify config file
-
-echo "USER=$noip_user" > $I_CONF_FILE.tmp
-echo "PASSWD=$noip_pass" >> $I_CONF_FILE.tmp
-echo "HOST=$noip_host" >> $I_CONF_FILE.tmp
-echo "TIME=$latency" >> $I_CONF_FILE.tmp
-
-bin=$(escape "/bin/sh $installdir/noip.sh")
-
-if [ "$SYSTEM" = "systemd" ]; then
-	sed "s/^ExecStart=.*/ExecStart=$bin/g" $I_UNIT_FILE > $I_UNIT_FILE.tmp
-else
-	sed "s/^NOIP=.*/NOIP=\"$bin\"/g" $I_SERVICE > $I_SERVICE.tmp
-fi
+echo "USER=$noip_user" > $conf_tmp
+echo "PASSWD=$noip_pass" >> $conf_tmp
+echo "HOST=$noip_host" >> $conf_tmp
+echo "LAST_IP=" >> $conf_tmp
 
 # Install files
 
@@ -118,26 +96,27 @@ if ! [ -d $I_CONF_DIR ]; then
 	install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_CONF_DIR
 fi
 
-install -m $I_RMODE -o $I_OWNER -g $I_GROUP $I_CONF_FILE.tmp $I_CONF_DIR/$I_CONF_FILE
-rm -f $I_CONF_FILE.tmp
+install -m $I_RMODE -o $I_OWNER -g $I_GROUP $conf_tmp $I_CONF_DIR/$I_CONF_FILE
+rm -f $conf_tmp
 
-if [ "$SYSTEM" = "systemd" ]; then
-	install -m $I_FMODE -o $I_OWNER -g $I_GROUP $I_UNIT_FILE.tmp $I_SYSTEMD/$I_UNIT_FILE
-	systemctl enable $I_SERVICE
-	systemctl daemon-reload
-	systemctl start $I_SERVICE
-	rm -f $I_UNIT_FILE.tmp
-else
-	install -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_SERVICE.tmp $I_SYSVINIT/$I_SERVICE
-	insserv $I_SERVICE
-	service start $I_SERVICE
-	rm -f $I_SERVICE.tmp
+# Add task to cron
+
+cron_tmp=$(mktemp)
+
+if [ -z "$conf_tmp" ]; then
+    echo "Warning: couldn't create temporary file."
+    cron_tmp="crontab.tmp"
 fi
 
-echo "Daemon installed successfully. Please check the status running:"
+crontab -l > $cron_tmp 2> /dev/null
 
-if [ "$SYSTEM" = "systemd" ]; then
-	echo "  systemctl status $I_SERVICE"
+if [ -n "$(egrep "^\*/[0-9]+ \* \* \* \* .*$I_BIN_FILE$" $cron_tmp)" ]; then
+    sed -ri "s:^\*/[0-9]+ \* \* \* \* .*noip\.sh$:*/$latency * * * * $installdir/$I_BIN_FILE:g" $cron_tmp
 else
-	echo "  service $I_SERVICE status"
+    echo "*/$latency * * * * $installdir/$I_BIN_FILE" >> $cron_tmp
 fi
+
+crontab $cron_tmp
+rm -f $cron_tmp
+
+echo "Application installed successfully."

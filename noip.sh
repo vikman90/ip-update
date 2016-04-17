@@ -15,23 +15,23 @@ PID_FILE="/run/noip.pid"
 oldip=''
 echo $$ > $PID_FILE
 
+if ! [ -f $CONF_FILE ]; then
+    echo "Error: No such file $CONF_FILE"
+    exit 1
+fi
+
 . $CONF_FILE
 
-while true; do
-	ip=$(curl -sG "ip1.dynupdate.no-ip.com")
+ip=$(curl -sG "ip1.dynupdate.no-ip.com")
 
-	if [ "$ip" != "$oldip" ]; then
-		resp=$(curl -sG "$USER:$PASSWD@dynupdate.no-ip.com/nic/update?hostname=$HOST&myip=$ip" | tr -d '\r')
+if [ "$ip" != "$LAST_IP" ]; then
+    resp=$(curl -sG "$USER:$PASSWD@dynupdate.no-ip.com/nic/update?hostname=$HOST&myip=$ip" | tr -d '\r')
 
-		if ! ([ "$resp" = "good $ip" ] || [ "$resp" = "nochg $ip" ]); then
-			echo "Error. $resp"
-			exit 1
-		fi
+    if ! ([ "$resp" = "good $ip" ] || [ "$resp" = "nochg $ip" ]); then
+        echo "Error: $resp"
+        exit 1
+    fi
 
-		oldip=$ip
-		echo "IP updated to $ip"
-	fi
-
-	sleep $TIME
-done
-
+    sed -i "s/^LAST_IP=.*/LAST_IP=$ip/g" $CONF_FILE
+    echo "IP updated to $ip"
+fi
