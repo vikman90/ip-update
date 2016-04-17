@@ -11,6 +11,11 @@ I_XMODE="755"
 I_FMODE="644"
 I_SYSTEMD="/etc/systemd/system"
 I_SYSVINIT="/etc/init.d"
+I_BIN_FILE="noip.sh"
+I_SERVICE="noip"
+I_UNIT_FILE="$I_SERVICE.service"
+I_CONF_DIR="/etc/noip"
+I_CONF_FILE="noip_conf"
 
 # Functions
 
@@ -83,20 +88,19 @@ else
 	exit 1
 fi
 
-# Modify sources
+# Modify config file
 
-noip_pass=$(escape "$noip_pass")
-sed "s/^USER=.*/USER=\"$noip_user\"/g" noip.sh > noip.sh.tmp
-sed -i "s/^PASSWD=.*/PASSWD=\"$$noip_pass\"/g" noip.sh.tmp
-sed -i "s/^HOST=.*/HOST=\"$noip_host\"/g" noip.sh.tmp
-sed -i "s/^TIME=.*/TIME=$latency/g" noip.sh.tmp
+echo "USER=$noip_user" > $I_CONF_FILE.tmp
+echo "PASSWD=$noip_pass" >> $I_CONF_FILE.tmp
+echo "HOST=$noip_host" >> $I_CONF_FILE.tmp
+echo "TIME=$latency" >> $I_CONF_FILE.tmp
 
 bin=$(escape "/bin/sh $installdir/noip.sh")
 
 if [ "$SYSTEM" = "systemd" ]; then
-	sed "s/^ExecStart=.*/ExecStart=$bin/g" noip.service > noip.service.tmp
+	sed "s/^ExecStart=.*/ExecStart=$bin/g" $I_UNIT_FILE > $I_UNIT_FILE.tmp
 else
-	sed "s/^NOIP=.*/NOIP=\"$bin\"/g" noip > noip.tmp
+	sed "s/^NOIP=.*/NOIP=\"$bin\"/g" $I_SERVICE > $I_SERVICE.tmp
 fi
 
 # Install files
@@ -105,27 +109,32 @@ if ! [ -d $installdir ]; then
 	install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $installdir
 fi
 
-install -m $I_XMODE -o $I_OWNER -g $I_GROUP noip.sh.tmp $installdir/noip.sh
+install -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_BIN_FILE $installdir/$I_BIN_FILE
 rm -f noip.sh.tmp
 
+if ! [ -d $I_CONF_DIR ]; then
+	install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_CONF_DIR
+fi
+
+install -m $I_FMODE -o $I_OWNER -g $I_GROUP $I_CONF_FILE.tmp $I_CONF_DIR/$I_CONF_FILE
+
 if [ "$SYSTEM" = "systemd" ]; then
-	install -m $I_FMODE -o $I_OWNER -g $I_GROUP noip.service.tmp $I_SYSTEMD/noip.service
-	systemctl enable noip
+	install -m $I_FMODE -o $I_OWNER -g $I_GROUP $I_UNIT_FILE.tmp $I_SYSTEMD/$I_UNIT_FILE
+	systemctl enable $I_SERVICE
 	systemctl daemon-reload
-	systemctl start noip
-	rm -f noip.service.tmp
+	systemctl start $I_SERVICE
+	rm -f $I_UNIT_FILE.tmp
 else
-	install -m $I_XMODE -o $I_OWNER -g $I_GROUP noip.tmp $I_SYSVINIT/noip
-	insserv noip
-	service start noip
-	rm -f noip.tmp
+	install -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_SERVICE.tmp $I_SYSVINIT/$I_SERVICE
+	insserv $I_SERVICE
+	service start $I_SERVICE
+	rm -f $I_SERVICE.tmp
 fi
 
 echo "Daemon installed successfully. Please check the status running:"
 
 if [ "$SYSTEM" = "systemd" ]; then
-	echo "  systemctl status noip"
+	echo "  systemctl status $I_SERVICE"
 else
-	echo "  service noip status"
+	echo "  service $I_SERVICE status"
 fi
-

@@ -4,23 +4,18 @@
 
 ################################################################################
 
-# NoIP user name and password
-USER="user"
-PASSWD="password"
-
-# Host name
-HOST="hostname"
-
-# Time between checking (seconds)
-TIME=300
+# Configuration file
+CONF_FILE="/etc/noip/noip_conf"
 
 # PID file (for service stopping)
-PIDFILE="/run/noip.pid"
+PID_FILE="/run/noip.pid"
 
 ################################################################################
 
 oldip=''
-echo $$ > $PIDFILE
+echo $$ > $PID_FILE
+
+. $CONF_FILE
 
 while true; do
 	ip=$(curl -sG "ip1.dynupdate.no-ip.com")
