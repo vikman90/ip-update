@@ -30,48 +30,48 @@ function escape() {
 echo "This application will install the IP-update daemon."
 
 if [ "$USER" != "root" ]; then
-	echo "Please run this script with root permissions."
-	exit 1
+    echo "Please run this script with root permissions."
+    exit 1
 fi
 
 while [ -z "$noip_user" ]; do
-	read -p "  Enter your NoIP username: " noip_user
+    read -p "  Enter your NoIP username: " noip_user
 done
 
 while [ -z "$noip_pass" ]; do
-	read -s -p "  Enter your NoIP password: " noip_pass
-	echo "********"
+    read -s -p "  Enter your NoIP password: " noip_pass
+    echo "********"
 done
 
 while [ -z "$noip_host" ]; do
-	read -p "  Enter your NoIP hostname: " noip_host
-	
-	if [ -z "$(echo $noip_host | egrep '^.+\..+\..+' )" ]; then
-		echo "Error: a hostname must be in the form x.y.z"
-		noip_host=""
-	fi
+    read -p "  Enter your NoIP hostname: " noip_host
+
+    if [ -z "$(echo $noip_host | egrep '^.+\..+\..+' )" ]; then
+        echo "Error: a hostname must be in the form x.y.z"
+        noip_host=""
+    fi
 done
 
 while [ -z "$latency" ]; do
-	read -p "  Enter the updating frequency (minutes) [$DEF_LATENCY]: " latency
-	
-	if [ -z "$latency" ]; then
-		latency=$DEF_LATENCY
-	elif [ -z "$(echo $latency | egrep '^[0-9]+$' )" ]; then
-		echo "Error: this value must be numeric"
-		latency=""
-	fi 
+    read -p "  Enter the updating frequency (minutes) [$DEF_LATENCY]: " latency
+
+    if [ -z "$latency" ]; then
+        latency=$DEF_LATENCY
+    elif [ -z "$(echo $latency | egrep '^[0-9]+$' )" ]; then
+        echo "Error: this value must be numeric"
+        latency=""
+    fi
 done
 
 while [ -z "$install_dir" ]; do
-	read -p "  Enter the installation directory [$DEF_INSTALL]: " install_dir
+    read -p "  Enter the installation directory [$DEF_INSTALL]: " install_dir
 
-	if [ -z "$install_dir" ]; then
-		install_dir=$DEF_INSTALL
-	elif [ -z "$(echo $install_dir | egrep '^/$|^(/[A-Za-z\._-]+)+$' )" ]; then
-		echo "Error: this value must be a path"
-		install_dir=""
-	fi
+    if [ -z "$install_dir" ]; then
+        install_dir=$DEF_INSTALL
+    elif [ -z "$(echo $install_dir | egrep '^/$|^(/[A-Za-z\._-]+)+$' )" ]; then
+        echo "Error: this value must be a path"
+        install_dir=""
+    fi
 done
 
 echo "Installing..."
@@ -93,13 +93,13 @@ echo "LAST_IP=" >> $conf_tmp
 # Install files
 
 if ! [ -d $install_dir ]; then
-	install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $install_dir
+    install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $install_dir
 fi
 
 install -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_BIN_FILE $install_dir/$I_BIN_FILE
 
 if ! [ -d $I_CONF_DIR ]; then
-	install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_CONF_DIR
+    install -d -m $I_XMODE -o $I_OWNER -g $I_GROUP $I_CONF_DIR
 fi
 
 install -m $I_RMODE -o $I_OWNER -g $I_GROUP $conf_tmp $I_CONF_DIR/$I_CONF_FILE
