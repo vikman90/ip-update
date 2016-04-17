@@ -1,7 +1,12 @@
 #!/bin/bash
+################################################################################
 # Installer for IP update
 # Victor Manuel Fernandez Castro
 # 10 April 2016
+#
+# Usage:
+# ./install.sh [--uninstall]
+################################################################################
 
 # Configuration
 
@@ -25,14 +30,66 @@ function escape() {
     echo $(echo $1 | sed "s/\\$2/\\\\\\$2/g")
 }
 
-# User input
+# Help
 
-echo "This application will install the IP-update daemon."
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+    echo "IP-Update application by Vikman."
+    echo "Usage: $0 [--uninstall]"
+    exit 0
+fi
+
+# Test whether user is root
 
 if [ "$USER" != "root" ]; then
     echo "Please run this script with root permissions."
     exit 1
 fi
+
+# Uninstall
+
+if [ "$1" = "--uninstall" ]; then
+    echo "This application will uninstall the IP-Update application."
+    
+    # User input
+    
+    while [ -z "$install_dir" ]; do
+        read -p "  Enter the installation directory [$DEF_INSTALL]: " install_dir
+
+        if [ -z "$install_dir" ]; then
+            install_dir=$DEF_INSTALL
+        elif [ -z "$(echo $install_dir | egrep '^/$|^(/[A-Za-z\._-]+)+$' )" ]; then
+            echo "Error: this value must be a path"
+            install_dir=""
+        fi
+    done
+    
+    # Delete files
+    
+    rm -f $install_dir/$I_BIN_FILE
+    rm -f $I_CONF_DIR/$I_CONF_FILE
+    rmdir $I_CONF_DIR
+    
+    # Remove line from cron
+    
+    cron_tmp=$(mktemp)
+
+    if [ -z "$cron_tmp" ]; then
+        echo "Warning: couldn't create temporary file."
+        cron_tmp="crontab.tmp"
+    fi
+
+    crontab -l > $cron_tmp 2> /dev/null
+    sed -ri "\:^\*/[0-9]+ \* \* \* \* .*$(escape $I_BIN_FILE '.')\$:d" $cron_tmp
+    crontab $cron_tmp
+    rm -f $cron_tmp
+    
+    echo "Application uninstalled."
+    exit 0
+fi
+
+# User input
+
+echo "This application will install IP-Update."
 
 while [ -z "$noip_user" ]; do
     read -p "  Enter your NoIP username: " noip_user
@@ -109,7 +166,7 @@ rm -f $conf_tmp
 
 cron_tmp=$(mktemp)
 
-if [ -z "$conf_tmp" ]; then
+if [ -z "$cron_tmp" ]; then
     echo "Warning: couldn't create temporary file."
     cron_tmp="crontab.tmp"
 fi
